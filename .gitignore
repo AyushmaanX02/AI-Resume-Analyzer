@@ -1,0 +1,37 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.project
+*.classpath
+.settings/
+
+# Logs
+*.log
+
+# Environment files - NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Spring Boot
+spring-boot-*.log
+
+# H2 database files
+*.db
+*.mv.db
+*.trace.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if any frontend tooling added)
+node_modules/

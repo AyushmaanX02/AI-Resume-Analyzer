@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Resume Analyzer - Match Resumes to Job Descriptions Instantly</title>
+  <meta name="description" content="Objective AI-powered resume analyzer with ATS formatting checks, TF-IDF match scoring, missing skill detection, and actionable suggestions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../src/main/resources/static/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header / Navbar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">AI Resume Analyzer</span>
+          <span class="brand-tag">v1.0 Pro</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" id="tab-analyzer-btn" onclick="switchTab('analyzer')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Analyzer
+        </button>
+        <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          History & Comparison
+        </button>
+        <button class="tab-btn" id="tab-library-btn" onclick="switchTab('library')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Saved Resumes & JDs
+        </button>
+      </nav>
+
+      <div class="user-profile-bar">
+        <div id="auth-status-container">
+          <button class="btn btn-secondary btn-sm" id="auth-modal-btn" onclick="openAuthModal()">Sign In / Register</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- 1. ANALYZER TAB -->
+      <section id="view-analyzer" class="tab-content active">
+        <div class="hero-banner">
+          <div class="hero-text">
+            <h1 class="page-title">Optimize Your Resume for Every Job Application</h1>
+            <p class="page-subtitle">Extract skills, calculate TF-IDF match scores, check ATS compatibility, and get actionable LLM bullet-reframing suggestions.</p>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-demo" id="load-sample-btn" onclick="loadSampleData()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Load Demo Sample (SDE-I Role)
+            </button>
+          </div>
+        </div>
+
+        <!-- Input Grid -->
+        <div class="input-grid">
+          <!-- Resume Input Card -->
+          <div class="glass-card input-card">
+            <div class="card-header">
+              <div class="step-badge">1</div>
+              <h2>Upload Resume</h2>
+              <span class="card-hint">PDF or DOCX</span>
+            </div>
+            
+            <div class="drag-drop-zone" id="resume-drop-zone">
+              <input type="file" id="resume-file-input" accept=".pdf,.docx" onchange="handleFileSelected(event)">
+              <div class="drop-zone-content">
+                <div class="upload-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="drop-title">Drag & drop your resume here</p>
+                <p class="drop-subtitle">or click to browse files</p>
+              </div>
+            </div>
+
+            <div class="library-selector-divider"><span>OR SELECT SAVED</span></div>
+            <select id="resume-select" class="form-control" onchange="selectSavedResume(this.value)">
+              <option value="">-- Choose from uploaded resumes --</option>
+            </select>
+
+            <div id="resume-status-badge" class="status-box hidden">
+              <div class="status-file-info">
+                <span class="file-icon">📄</span>
+                <span id="resume-filename-text" class="filename-text">resume.pdf</span>
+                <span id="resume-id-tag" class="badge badge-indigo">ID: -</span>
+              </div>
+              <div id="resume-parsed-summary" class="parsed-summary"></div>
+            </div>
+          </div>
+
+          <!-- JD Input Card -->
+          <div class="glass-card input-card">
+            <div class="card-header">
+              <div class="step-badge">2</div>
+              <h2>Job Description</h2>
+              <span class="card-hint">Target Role</span>
+            </div>
+
+            <div class="form-group">
+              <label for="jd-title-input">Job Title / Company</label>
+              <input type="text" id="jd-title-input" class="form-control" placeholder="e.g. SDE-I Backend Engineer at Acme Corp">
+            </div>
+
+            <div class="form-group">
+              <label for="jd-text-input">Paste Job Description Text</label>
+              <textarea id="jd-text-input" class="form-control text-area" placeholder="Paste full job description requirements, skills, and qualifications here..."></textarea>
+            </div>
+
+            <div class="action-row">
+              <button class="btn btn-secondary btn-sm" onclick="submitJobDescription()">Parse & Save JD</button>
+              <span class="library-selector-divider inline">OR</span>
+              <select id="jd-select" class="form-control compact" onchange="selectSavedJd(this.value)">
+                <option value="">-- Choose saved JD --</option>
+              </select>
+            </div>
+
+            <div id="jd-status-badge" class="status-box hidden">
+              <div class="status-file-info">
+                <span class="file-icon">💼</span>
+                <span id="jd-title-text" class="filename-text">Target Job</span>
+                <span id="jd-id-tag" class="badge badge-violet">ID: -</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Run Analysis CTA -->
+        <div class="analyze-cta-container">
+          <button class="btn btn-glow btn-lg" id="run-analysis-btn" onclick="runAnalysis()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Run AI Match Analysis
+          </button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-container" class="results-wrapper hidden">
+          <div class="results-header">
+            <h2>Analysis Results & Breakdown</h2>
+            <div id="analysis-timestamp-badge" class="timestamp-tag">Analyzed just now</div>
+          </div>
+
+          <div class="results-grid">
+            <!-- Overall Score Gauge Card -->
+            <div class="glass-card score-card">
+              <h3>Overall Match Score</h3>
+              <div class="score-radial-wrapper">
+                <svg class="score-gauge" viewBox="0 0 120 120">
+                  <circle class="gauge-bg" cx="60" cy="60" r="50"></circle>
+                  <circle class="gauge-fill" id="score-gauge-circle" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="314"></circle>
+                </svg>
+                <div class="score-center-text">
+                  <span id="score-number-display" class="score-number">0</span>
+                  <span class="score-unit">%</span>
+                </div>
+              </div>
+              <div id="score-rating-badge" class="rating-badge rating-good">Evaluating...</div>
+              <p id="score-description" class="score-desc-text">Comparing resume profile against job requirements.</p>
+            </div>
+
+            <!-- Breakdown Bars Card -->
+            <div class="glass-card breakdown-card">
+              <h3>Scoring Breakdown</h3>
+              <div class="breakdown-list">
+                <div class="breakdown-item">
+                  <div class="breakdown-label">
+                    <span>🎯 Hard Skills Overlap (50%)</span>
+                    <span id="skills-score-val" class="breakdown-val">0%</span>
+                  </div>
+                  <div class="progress-bar-track">
+                    <div id="skills-progress-fill" class="progress-bar-fill fill-cyan" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="breakdown-item">
+                  <div class="breakdown-label">
+                    <span>💼 Experience Fit / TF-IDF Similarity (30%)</span>
+                    <span id="exp-score-val" class="breakdown-val">0%</span>
+                  </div>
+                  <div class="progress-bar-track">
+                    <div id="exp-progress-fill" class="progress-bar-fill fill-purple" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="breakdown-item">
+                  <div class="breakdown-label">
+                    <span>🔑 Keyword & Term Overlap (20%)</span>
+                    <span id="kw-score-val" class="breakdown-val">0%</span>
+                  </div>
+                  <div class="progress-bar-track">
+                    <div id="kw-progress-fill" class="progress-bar-fill fill-emerald" style="width: 0%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skills & Gap Analysis -->
+          <div class="glass-card section-card">
+            <div class="card-title-row">
+              <div class="title-with-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                <h3>Skill Gap Analysis</h3>
+              </div>
+            </div>
+
+            <div class="skills-grid">
+              <div class="skill-group">
+                <h4 class="skills-heading heading-matched">
+                  <span class="icon">✅</span> Matched Skills (<span id="matched-count">0</span>)
+                </h4>
+                <div id="matched-skills-container" class="pill-container">
+                  <span class="empty-text">None detected</span>
+                </div>
+              </div>
+
+              <div class="skill-group">
+                <h4 class="skills-heading heading-missing">
+                  <span class="icon">⚠️</span> Missing / Unmatched Skills (<span id="missing-count">0</span>)
+                </h4>
+                <div id="missing-skills-container" class="pill-container">
+                  <span class="empty-text">None missing! Great job.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ATS Formatting Check -->
+          <div class="glass-card section-card">
+            <div class="card-title-row">
+              <div class="title-with-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <h3>ATS Compatibility & Formatting Check</h3>
+              </div>
+            </div>
+            <div id="ats-flags-container" class="ats-flags-list">
+              <div class="ats-flag-item ats-ok">
+                <span class="flag-icon">✅</span>
+                <span>No major ATS structural risks detected. Standard headers and text format detected.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Suggestions & Reframing Bullet Points -->
+          <div class="glass-card section-card highlight-border">
+            <div class="card-title-row">
+              <div class="title-with-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                <h3>Actionable AI Suggestions & Bullet Reframing</h3>
+              </div>
+            </div>
+            <p class="section-subtitle">Tailor your resume bullet points using these specific recommendations without fabricating experience:</p>
+            <div id="suggestions-container" class="suggestions-list">
+              <div class="suggestion-item">
+                <p>Highlight specific engineering achievements related to missing target skills.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. HISTORY & COMPARISON TAB -->
+      <section id="view-history" class="tab-content">
+        <div class="hero-banner">
+          <div class="hero-text">
+            <h1 class="page-title">Analysis History & Score Iterations</h1>
+            <p class="page-subtitle">Track how your match score improves across resume revisions for the same job description.</p>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-secondary btn-sm" onclick="loadHistory()">Refresh History</button>
+          </div>
+        </div>
+
+        <div class="glass-card history-card">
+          <div class="history-table-wrapper">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Analysis ID</th>
+                  <th>Date</th>
+                  <th>Resume Version</th>
+                  <th>Job Description</th>
+                  <th>Match Score</th>
+                  <th>Skills Score</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <tr>
+                  <td colspan="7" class="empty-table-cell">No analysis history found. Run your first analysis in the Analyzer tab!</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. SAVED LIBRARY TAB -->
+      <section id="view-library" class="tab-content">
+        <div class="hero-banner">
+          <div class="hero-text">
+            <h1 class="page-title">Saved Resumes & Job Descriptions</h1>
+            <p class="page-subtitle">Manage your parsed resume versions and target job descriptions in one place.</p>
+          </div>
+        </div>
+
+        <div class="library-grid">
+          <!-- Resumes List -->
+          <div class="glass-card">
+            <h3>Saved Resumes</h3>
+            <div id="library-resumes-list" class="library-items-list">
+              <p class="empty-text">No resumes uploaded yet.</p>
+            </div>
+          </div>
+
+          <!-- JDs List -->
+          <div class="glass-card">
+            <h3>Saved Job Descriptions</h3>
+            <div id="library-jds-list" class="library-items-list">
+              <p class="empty-text">No job descriptions submitted yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="modal-backdrop hidden">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <h2 id="auth-modal-title">Account Access</h2>
+        <button class="modal-close-btn" onclick="closeAuthModal()">&times;</button>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="auth-tab-login" onclick="toggleAuthTab('login')">Sign In</button>
+        <button class="auth-tab-btn" id="auth-tab-register" onclick="toggleAuthTab('register')">Register</button>
+      </div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group" id="fullname-group">
+          <label for="auth-fullname">Full Name</label>
+          <input type="text" id="auth-fullname" class="form-control" placeholder="Ayushmaan Kapoor" value="Ayushmaan Kapoor">
+        </div>
+
+        <div class="form-group">
+          <label for="auth-email">Email Address</label>
+          <input type="email" id="auth-email" class="form-control" placeholder="ayushmaan@example.com" value="test@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" class="form-control" placeholder="••••••••" value="password123" required>
+        </div>
+
+        <div id="auth-error-msg" class="auth-error-box hidden"></div>
+
+        <button type="submit" id="auth-submit-btn" class="btn btn-glow btn-block">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="../src/main/resources/static/app.js"></script>
+</body>
+</html>
