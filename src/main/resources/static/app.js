@@ -141,6 +141,7 @@ async function handleAuthSubmit(e) {
     localStorage.setItem("resume_analyzer_token", currentToken);
     localStorage.setItem("resume_analyzer_user", JSON.stringify(currentUser));
 
+    resetAppState();
     initAuthUI();
     closeAuthModal();
     loadSavedLibrary();
@@ -155,7 +156,41 @@ function logout() {
   currentUser = null;
   localStorage.removeItem("resume_analyzer_token");
   localStorage.removeItem("resume_analyzer_user");
+  resetAppState();
   initAuthUI();
+}
+
+function resetAppState() {
+  activeResumeId = null;
+  activeJdId = null;
+  activeResumeFilename = null;
+  activeJdTitle = null;
+
+  const jdTitle = document.getElementById("jd-title-input");
+  if (jdTitle) jdTitle.value = "";
+  const jdText = document.getElementById("jd-text-input");
+  if (jdText) jdText.value = "";
+  const fileInput = document.getElementById("resume-file-input");
+  if (fileInput) fileInput.value = "";
+
+  const resumeBadge = document.getElementById("resume-status-badge");
+  if (resumeBadge) resumeBadge.classList.add("hidden");
+  const jdBadge = document.getElementById("jd-status-badge");
+  if (jdBadge) jdBadge.classList.add("hidden");
+  const resultsContainer = document.getElementById("results-container");
+  if (resultsContainer) resultsContainer.classList.add("hidden");
+
+  const resumeSelect = document.getElementById("resume-select");
+  if (resumeSelect) resumeSelect.innerHTML = `<option value="">-- Choose from uploaded resumes --</option>`;
+  const jdSelect = document.getElementById("jd-select");
+  if (jdSelect) jdSelect.innerHTML = `<option value="">-- Choose saved JD --</option>`;
+
+  const libResumes = document.getElementById("library-resumes-list");
+  if (libResumes) libResumes.innerHTML = `<p class="empty-text">No resumes uploaded yet.</p>`;
+  const libJds = document.getElementById("library-jds-list");
+  if (libJds) libJds.innerHTML = `<p class="empty-text">No job descriptions saved yet.</p>`;
+  const historyTable = document.getElementById("history-table-body");
+  if (historyTable) historyTable.innerHTML = `<tr><td colspan="7" class="empty-table-cell">No past analyses recorded yet.</td></tr>`;
 }
 
 function getAuthHeaders() {
