@@ -29,14 +29,24 @@ public class ResumeParsingService {
         }
 
         String lower = filename.toLowerCase();
-        try (InputStream is = file.getInputStream()) {
+        try {
             if (lower.endsWith(".pdf")) {
-                return extractFromPdf(is);
+                try (InputStream is = file.getInputStream()) {
+                    return extractFromPdf(is);
+                } catch (Exception e) {
+                    return new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                }
             } else if (lower.endsWith(".docx")) {
-                return extractFromDocx(is);
+                try (InputStream is = file.getInputStream()) {
+                    return extractFromDocx(is);
+                } catch (Exception e) {
+                    return new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                }
             } else {
-                throw new IllegalArgumentException("Unsupported file type. Use PDF or DOCX.");
+                return new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
             }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to read resume file: " + e.getMessage());
         }
     }
 

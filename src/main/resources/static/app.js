@@ -216,6 +216,24 @@ function switchTab(tabName) {
   }
 }
 
+async function safeFetch(url, options = {}) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (e) {}
+  }
+  if (!res.ok) {
+    const errorMsg = (data && data.message) 
+      ? data.message 
+      : `Server returned error (${res.status}): ${res.statusText || 'Operation failed'}`;
+    throw new Error(errorMsg);
+  }
+  return data;
+}
+
 // DRAG AND DROP & FILE UPLOAD
 function setupDragAndDrop() {
   const zone = document.getElementById("resume-drop-zone");
@@ -252,28 +270,24 @@ function handleFileSelected(event) {
 }
 
 async function uploadResumeFile(file) {
-  if (!ensureAuth()) return;
+  if (!ensureAuth()) return false;
 
   const formData = new FormData();
   formData.append("file", file);
 
   try {
-    const res = await fetch(`${API_BASE}/resumes`, {
+    const data = await safeFetch(`${API_BASE}/resumes`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: formData
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Failed to upload resume");
-    }
-
-    const data = await res.json();
     setResumeState(data.id, data.filename, data.parsedSectionsJson);
     loadSavedLibrary();
+    return true;
   } catch (err) {
     alert("Upload failed: " + err.message);
+    return false;
   }
 }
 
@@ -300,18 +314,18 @@ function setResumeState(id, filename, parsedJsonStr) {
 
 // JOB DESCRIPTION SUBMISSION
 async function submitJobDescription() {
-  if (!ensureAuth()) return;
+  if (!ensureAuth()) return false;
 
   const title = document.getElementById("jd-title-input").value.trim() || "Untitled Job Description";
   const rawText = document.getElementById("jd-text-input").value.trim();
 
   if (!rawText) {
     alert("Please paste the job description text.");
-    return;
+    return false;
   }
 
   try {
-    const res = await fetch(`${API_BASE}/job-descriptions`, {
+    const data = await safeFetch(`${API_BASE}/job-descriptions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -320,16 +334,12 @@ async function submitJobDescription() {
       body: JSON.stringify({ title, rawText })
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Failed to submit JD");
-    }
-
-    const data = await res.json();
     setJdState(data.id, data.title);
     loadSavedLibrary();
+    return true;
   } catch (err) {
     alert("JD submission failed: " + err.message);
+    return false;
   }
 }
 
@@ -348,17 +358,19 @@ async function loadSampleData() {
 
   // Create mock file for sample resume
   const blob = new Blob([SAMPLE_RESUME_TEXT], { type: "text/plain" });
-  const file = new File([blob], "Ayushmaan_Kapoor_Resume_SDE.pdf", { type: "application/pdf" });
+  const file = new File([blob], "Ayushmaan_Kapoor_Resume_SDE.txt", { type: "text/plain" });
 
   document.getElementById("jd-title-input").value = "SDE-I Backend Engineer at Acme Cloud Solutions";
   document.getElementById("jd-text-input").value = SAMPLE_JD_TEXT;
 
   // Submit sample resume & JD
-  await uploadResumeFile(file);
-  await submitJobDescription();
+  const resOk = await uploadResumeFile(file);
+  const jdOk = await submitJobDescription();
 
-  // Trigger analysis immediately
-  runAnalysis();
+  // Trigger analysis immediately if both succeeded
+  if (resOk && jdOk) {
+    runAnalysis();
+  }
 }
 
 // RUN AI ANALYSIS
@@ -375,7 +387,7 @@ async function runAnalysis() {
   btn.disabled = true;
 
   try {
-    const res = await fetch(`${API_BASE}/analysis`, {
+    const data = await safeFetch(`${API_BASE}/analysis`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -384,12 +396,6 @@ async function runAnalysis() {
       body: JSON.stringify({ resumeId: activeResumeId, jdId: activeJdId })
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Analysis failed");
-    }
-
-    const data = await res.json();
     renderAnalysisResults(data);
   } catch (err) {
     alert("Analysis Error: " + err.message);
@@ -525,16 +531,13 @@ async function loadHistory() {
   if (!ensureAuth()) return;
 
   try {
-    const res = await fetch(`${API_BASE}/analysis/history`, {
+    const history = await safeFetch(`${API_BASE}/analysis/history`, {
       headers: getAuthHeaders()
     });
 
-    if (!res.ok) throw new Error("Failed to load history");
-
-    const history = await res.json();
     const tbody = document.getElementById("history-table-body");
 
-    if (history.length === 0) {
+    if (!history || history.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" class="empty-table-cell">No past analyses recorded yet.</td></tr>`;
       return;
     }
@@ -559,12 +562,10 @@ async function loadHistory() {
 
 async function viewHistoryDetail(id) {
   try {
-    const res = await fetch(`${API_BASE}/analysis/${id}`, {
+    const data = await safeFetch(`${API_BASE}/analysis/${id}`, {
       headers: getAuthHeaders()
     });
-    if (!res.ok) throw new Error("Failed to fetch analysis details");
 
-    const data = await res.json();
     switchTab('analyzer');
     renderAnalysisResults(data);
   } catch (err) {
@@ -578,18 +579,12 @@ async function loadSavedLibrary() {
 
   try {
     // Load Resumes
-    const resResumes = await fetch(`${API_BASE}/resumes`, { headers: getAuthHeaders() });
-    if (resResumes.ok) {
-      const resumes = await resResumes.json();
-      renderResumesLibrary(resumes);
-    }
+    const resumes = await safeFetch(`${API_BASE}/resumes`, { headers: getAuthHeaders() });
+    if (resumes) renderResumesLibrary(resumes);
 
     // Load Job Descriptions
-    const resJds = await fetch(`${API_BASE}/job-descriptions`, { headers: getAuthHeaders() });
-    if (resJds.ok) {
-      const jds = await resJds.json();
-      renderJdsLibrary(jds);
-    }
+    const jds = await safeFetch(`${API_BASE}/job-descriptions`, { headers: getAuthHeaders() });
+    if (jds) renderJdsLibrary(jds);
   } catch (err) {
     console.error(err);
   }
@@ -644,9 +639,7 @@ function renderJdsLibrary(jds) {
 async function selectSavedResume(id) {
   if (!id) return;
   try {
-    const res = await fetch(`${API_BASE}/resumes/${id}`, { headers: getAuthHeaders() });
-    if (!res.ok) throw new Error("Failed to fetch resume");
-    const data = await res.json();
+    const data = await safeFetch(`${API_BASE}/resumes/${id}`, { headers: getAuthHeaders() });
     setResumeState(data.id, data.filename, data.parsedSectionsJson);
     switchTab('analyzer');
   } catch (err) {
@@ -657,9 +650,7 @@ async function selectSavedResume(id) {
 async function selectSavedJd(id) {
   if (!id) return;
   try {
-    const res = await fetch(`${API_BASE}/job-descriptions/${id}`, { headers: getAuthHeaders() });
-    if (!res.ok) throw new Error("Failed to fetch JD");
-    const data = await res.json();
+    const data = await safeFetch(`${API_BASE}/job-descriptions/${id}`, { headers: getAuthHeaders() });
     setJdState(data.id, data.title);
     document.getElementById("jd-title-input").value = data.title || "";
     document.getElementById("jd-text-input").value = data.rawText || "";
