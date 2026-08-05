@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ai-resume-analyzer
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon # or ohio, singapore, frankfurt
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: LLM_MODEL
+        value: "claude-sonnet-4-6"
+      # Optional: DB Configuration if using an external database instead of H2
+      # - key: DB_URL
+      #   value: jdbc:mysql://...
+      # - key: DB_USER
+      #   value: root
+      # - key: DB_PASSWORD
+      #   sync: false
+      # - key: DB_DRIVER
+      #   value: com.mysql.cj.jdbc.Driver
