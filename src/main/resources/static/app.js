@@ -225,6 +225,18 @@ async function safeFetch(url, options = {}) {
       data = JSON.parse(text);
     } catch (e) {}
   }
+
+  if (res.status === 401 || res.status === 403) {
+    logout();
+    openAuthModal();
+    const errorBox = document.getElementById("auth-error-msg");
+    if (errorBox) {
+      errorBox.innerText = "Session expired or invalid. Please sign in or register.";
+      errorBox.classList.remove("hidden");
+    }
+    throw new Error("Session expired. Please sign in or register.");
+  }
+
   if (!res.ok) {
     const errorMsg = (data && data.message) 
       ? data.message 
