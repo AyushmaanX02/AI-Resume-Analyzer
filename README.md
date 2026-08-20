@@ -32,14 +32,9 @@ src/main/java/com/ayushmaan/resumeanalyzer/
 - Maven
 - MySQL running locally (or update `DB_HOST` for a remote instance)
 
-### 2. Configure environment
-Copy `.env.example` → set values, or export as env vars / pass via Railway config:
-```bash
-cp .env.example .env
-```
 At minimum set `JWT_SECRET`. `ANTHROPIC_API_KEY` is optional — without it, suggestions fall back to a rule-based response instead of failing.
 
-### 3. Run locally
+### 2. Run locally
 ```bash
 mvn spring-boot:run
 ```
@@ -47,18 +42,11 @@ API runs on `http://localhost:8080`.
 
 Open `frontend/index.html` directly in a browser (or serve it) to test the full flow: register → login → upload resume → submit JD → analyze.
 
-### 4. Run with Docker
+### 3. Run with Docker
 ```bash
 docker build -t resume-analyzer .
 docker run -p 8080:8080 --env-file .env resume-analyzer
 ```
-
-### 5. Deploy to Railway
-Same pattern as your NexBank deployment:
-- Push to GitHub, connect repo to Railway.
-- Add a MySQL plugin, Railway auto-injects DB env vars — map them to `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` in service variables.
-- Set `JWT_SECRET` and `ANTHROPIC_API_KEY` in Railway variables.
-- Railway sets `PORT` automatically — already wired via `server.port: ${PORT:8080}`.
 
 ## API Endpoints
 
