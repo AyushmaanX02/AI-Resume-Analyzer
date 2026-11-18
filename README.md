@@ -2,8 +2,6 @@
 
 Upload a resume (PDF/DOCX) + paste a job description → get a match score, matched/missing skills, ATS formatting flags, and LLM-generated improvement suggestions.
 
-Built per the [PRD](./PRD.md) — Spring Boot backend, MySQL, JWT auth, PDFBox/POI parsing, skill-overlap scoring, Anthropic API for qualitative suggestions.
-
 ## Stack
 - Java 17 + Spring Boot 3.2
 - Spring Security + JWT (stateless auth)
@@ -78,7 +76,7 @@ This dictionary-matching approach is intentionally simple/explainable for v1. Sw
 - No column/table-aware PDF parsing — complex resume layouts may extract text out of order.
 - No resume rewriting — suggestions only, no auto-tailoring (see PRD backlog).
 
-## Next Steps (from PRD backlog)
+## Next Steps 
 - Auto-tailoring: LLM rewrites specific bullets to close skill gaps.
 - Multi-resume comparison against one JD.
 - Feed analysis scores into the job-application automation pipeline for auto-tailored applications.
